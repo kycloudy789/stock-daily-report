@@ -105,7 +105,7 @@ def _fetch_with_curl(url: str, params: Dict[str, Any]) -> Dict[str, Any]:
     query = "&".join(f"{quote(str(k))}={quote(str(v))}" for k, v in params.items())
     full_url = f"{url}?{query}"
     result = subprocess.run(
-        ["curl.exe", "-sS", "--max-time", "20", "-A", UA, full_url],
+        ["curl", "-sS", "--max-time", "20", "-A", UA, full_url],
         capture_output=True,
         text=True,
         encoding="utf-8",

@@ -29,7 +29,7 @@ GLOBAL_CODES = {
 def _curl_bytes(url: str) -> bytes:
     result = subprocess.run(
         [
-            "curl.exe", "-sS", "--max-time", "15", "-A", UA,
+            "curl", "-sS", "--max-time", "15", "-A", UA,
             "-H", "Referer: https://finance.sina.com.cn/",
             url,
         ],

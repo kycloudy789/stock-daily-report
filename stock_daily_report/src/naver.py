@@ -14,7 +14,7 @@ UA = (
 
 def _curl_bytes(url: str) -> bytes:
     result = subprocess.run(
-        ["curl.exe", "-sS", "--max-time", "15", "-A", UA, url],
+        ["curl", "-sS", "--max-time", "15", "-A", UA, url],
         capture_output=True,
     )
     if result.returncode != 0:

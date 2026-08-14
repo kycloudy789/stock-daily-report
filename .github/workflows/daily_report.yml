@@ -31,5 +31,6 @@ jobs:
       - name: 运行每日简报
         env:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: kycloudy789/stock-daily-report
         run: python -B stock_daily_report/run_daily.py
