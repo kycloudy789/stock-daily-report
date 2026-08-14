@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 本地配置与密钥
+stock_daily_report/config.json
+
+# 生成文件
+stock_daily_report/site/
+stock_daily_report/docs/
+docs/report.md

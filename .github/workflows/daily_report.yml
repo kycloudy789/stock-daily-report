@@ -1,0 +1,35 @@
+name: 每日股市与基金简报
+
+on:
+  schedule:
+    # 周一至周五 06:00 UTC，即北京时间 14:00
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-report
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install -r stock_daily_report/requirements.txt
+
+      - name: 运行每日简报
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          GITHUB_REPO: kycloudy789/stock-daily-report
+        run: python -B stock_daily_report/run_daily.py
