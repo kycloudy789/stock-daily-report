@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import os
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -30,8 +31,29 @@ def _ensure_gh_ready() -> str:
     result = _run(["gh", "auth", "status"], Path.cwd())
     if result.returncode != 0:
         raise RuntimeError("gh 未登录，请先运行 gh auth login。")
-    owner = _check(["gh", "api", "user", "--jq", ".login"], Path.cwd(), "获取 GitHub 用户名")
-    return owner.strip()
+    return ""
+
+
+def _resolve_owner(cfg: Dict) -> str:
+    """从配置或 Actions 环境推断仓库所有者，避免依赖 gh api user。"""
+    repo = str(cfg.get("GitHub仓库") or "").strip().lstrip("/")
+    if "/" in repo:
+        return repo.split("/", 1)[0]
+    env_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if "/" in env_repo:
+        return env_repo.split("/", 1)[0]
+    actor = os.environ.get("GITHUB_ACTOR", "").strip()
+    if actor:
+        return actor
+    return _check(["gh", "api", "user", "--jq", ".login"], Path.cwd(), "获取 GitHub 用户名").strip()
+
+
+def _pages_url(cfg: Dict, owner: str, repo: str) -> str:
+    base = str(cfg.get("GitHub页面基础地址") or "").strip().rstrip("/")
+    if base:
+        return base
+    repo_name = repo.split("/", 1)[1] if "/" in repo else repo
+    return f"https://{owner}.github.io/{repo_name}/"
 
 
 def _find_repo_root(start: Path) -> Path:
@@ -52,7 +74,8 @@ def publish_github(
     target_date,
 ) -> str:
     """发布 docs/index.html 到 GitHub Pages，返回网页地址。"""
-    owner = _ensure_gh_ready()
+    _ensure_gh_ready()
+    owner = _resolve_owner(cfg)
     repo = str(cfg.get("GitHub仓库") or "stock-daily-report").strip().lstrip("/")
     if "/" not in repo:
         repo = f"{owner}/{repo}"
@@ -90,17 +113,7 @@ def publish_github(
 
     pages = _run(["gh", "api", f"repos/{repo}/pages", "--jq", ".html_url"], repo_root)
     if pages.returncode != 0:
-        _check(
-            [
-                "gh", "api", f"repos/{repo}/pages", "-X", "POST",
-                "-f", "source[branch]=main",
-                "-f", "source[path]=/docs",
-                "--jq", ".html_url",
-            ],
-            repo_root,
-            "启用 GitHub Pages",
-        )
-        pages = _run(["gh", "api", f"repos/{repo}/pages", "--jq", ".html_url"], repo_root)
+        return _pages_url(cfg, owner, repo)
     return pages.stdout.strip()
 
 
