@@ -13,12 +13,18 @@ class ReportTest(unittest.TestCase):
 
     def test_html_contains_key_sections(self):
         html = build_html(self.snapshot, date(2026, 8, 14), "2026-08-14 14:00")
+        self.assertIn("市场概览", html)
         self.assertIn("A股主要指数", html)
+        self.assertIn("重点指数观察", html)
         self.assertIn("主要板块", html)
-        self.assertIn("全球市场", html)
+        self.assertIn("板块观点", html)
+        self.assertIn("外盘动向", html)
         self.assertIn("基金操作建议", html)
+        self.assertIn("今日观点", html)
         self.assertIn("韩国KOSPI", html)
         self.assertIn("半导体", html)
+        self.assertIn("两市成交额", html)
+        self.assertIn("恒生科技", html)
 
     def test_advice_generates_fund_tips(self):
         advice = build_advice(self.snapshot)

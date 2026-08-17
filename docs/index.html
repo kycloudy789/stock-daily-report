@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>2026-08-14 每日股市与基金简报</title>
+<title>2026-08-17 每日股市与基金简报</title>
 <!-- CSS_START -->
 <style>
 * { box-sizing: border-box; }
@@ -36,11 +36,20 @@ td { font-size: 14px; }
 .advice li::before { content: "◆"; position: absolute; left: 12px; top: 10px; color: #c2410c; }
 .notice { font-size: 12px; color: #7b8794; margin-top: 8px; }
 .empty { color: #7b8794; font-size: 13px; }
+.overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.stat { background: #f7f9fb; border: 1px solid #e4e7eb; border-radius: 6px; padding: 10px 12px; min-width: 0; }
+.stat-label { color: #52606d; font-size: 12px; }
+.stat-value { font-size: 16px; font-weight: 700; color: #0b3b5c; margin-top: 2px; word-break: break-all; }
+.views { list-style: none; margin: 0; padding: 0; }
+.views li { position: relative; padding: 8px 10px 8px 26px; margin-bottom: 6px; background: #f7f9fb; border-radius: 6px; font-size: 13px; line-height: 1.5; }
+.views li::before { content: "·"; position: absolute; left: 12px; top: 7px; color: #c2410c; font-weight: 700; }
+.today-view { background: #fff7ed; border: 1px solid #fbd38d; border-radius: 6px; padding: 12px 14px; font-size: 14px; line-height: 1.7; }
 @media (max-width: 620px) {
   .wrap { padding: 14px 10px 32px; }
   .header h1 { font-size: 20px; }
   .sector-pair { grid-template-columns: 1fr; }
   section { padding: 12px; }
+  .overview-grid { grid-template-columns: 1fr 1fr; }
 }
 </style>
 <!-- CSS_END -->
@@ -49,41 +58,59 @@ td { font-size: 14px; }
 <!-- BODY_START -->
 <div class="wrap">
   <div class="header">
-    <h1>2026-08-14 每日股市与基金简报<span class="tag">盘中速览</span></h1>
-    <div class="meta">数据截至 2026-08-14 15:46（北京时间）· 数据来源：腾讯/新浪/Naver、新浪行业替代 · 近 5 个交易日上证指数累计 +1.27%</div>
+    <h1>2026-08-17 每日股市与基金简报<span class="tag">交易日速览</span></h1>
+    <div class="meta">数据截至 2026-08-17 10:25（北京时间）· 数据来源：东方财富 · 近 5 个交易日上证指数累计 +4.61%</div>
   </div>
 
   <section>
-    <h2>A股主要指数</h2>
-    <div class="table-wrap"><table><thead><tr><th>指数</th><th>最新点位</th><th>涨跌幅</th><th>成交额</th></tr></thead><tbody><tr><td>上证指数</td><td>3927.18</td><td class="up">+0.01%</td><td>9904亿</td></tr><tr><td>深证成指</td><td>14354.31</td><td class="up">+0.45%</td><td>11525亿</td></tr><tr><td>创业板指</td><td>3626.30</td><td class="up">+1.12%</td><td>5534亿</td></tr><tr><td>科创50</td><td>1717.68</td><td class="flat">-0.00%</td><td>989亿</td></tr><tr><td>沪深300</td><td>4665.88</td><td class="up">+0.04%</td><td>5498亿</td></tr><tr><td>中证500</td><td>7990.33</td><td class="up">+0.28%</td><td>4090亿</td></tr><tr><td>中证1000</td><td>7769.82</td><td class="up">+0.70%</td><td>4823亿</td></tr></tbody></table></div>
+    <h2>市场概览</h2>
+    <div class="overview-grid"><div class="stat"><div class="stat-label">两市成交额</div><div class="stat-value">约 10610 亿元</div></div><div class="stat"><div class="stat-label">涨跌家数</div><div class="stat-value">2800 / 2354</div></div><div class="stat"><div class="stat-label">涨停 / 跌停</div><div class="stat-value">85 / 8</div></div></div>
+    <p>两市成交额约 10610 亿元；上涨 2800 家 / 下跌 2354 家；涨停 85 家 / 跌停 8 家</p>
+    <h2 style="margin-top:14px;">A股主要指数</h2>
+    <div class="table-wrap"><table><thead><tr><th>指数</th><th>最新点位</th><th>涨跌幅</th><th>成交额</th></tr></thead><tbody><tr><td>上证指数</td><td>3940.55</td><td class="up">+0.34%</td><td>5041亿</td></tr><tr><td>深证成指</td><td>14408.47</td><td class="up">+0.38%</td><td>5566亿</td></tr><tr><td>创业板指</td><td>3632.95</td><td class="up">+0.18%</td><td>2728亿</td></tr><tr><td>科创50</td><td>1748.39</td><td class="up">+1.79%</td><td>526亿</td></tr><tr><td>沪深300</td><td>4675.88</td><td class="up">+0.21%</td><td>2716亿</td></tr><tr><td>中证500</td><td>8048.49</td><td class="up">+0.73%</td><td>1946亿</td></tr><tr><td>中证1000</td><td>7805.87</td><td class="up">+0.46%</td><td>2410亿</td></tr><tr><td>北证50</td><td>1094.31</td><td class="up">+0.62%</td><td>71亿</td></tr></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>重点指数观察</h2>
+    <div class="table-wrap"><table><thead><tr><th>指数</th><th>最新点位</th><th>涨跌幅</th></tr></thead><tbody><tr><td>中证A500</td><td>5822.20</td><td class="up">+0.36%</td></tr><tr><td>中证白酒</td><td>6578.94</td><td class="down">-3.31%</td></tr><tr><td>中证医疗</td><td>6947.24</td><td class="down">-0.03%</td></tr><tr><td>证券公司</td><td>755.92</td><td class="down">-0.04%</td></tr><tr><td>中证银行</td><td>7125.11</td><td class="down">-0.22%</td></tr><tr><td>保险主题</td><td>2114.54</td><td class="up">+0.19%</td></tr><tr><td>中证中药</td><td>8819.19</td><td class="down">-0.36%</td></tr><tr><td>家用电器</td><td>11437.55</td><td class="up">+0.01%</td></tr><tr><td>新能源车</td><td>2667.67</td><td class="up">+0.17%</td></tr><tr><td>光伏产业</td><td>2577.12</td><td class="up">+0.88%</td></tr><tr><td>电网设备</td><td>36951.31</td><td class="up">+0.81%</td></tr><tr><td>恒生科技</td><td>4793.75</td><td class="up">+1.83%</td></tr><tr><td>恒生互联网</td><td>2297.20</td><td class="up">+1.46%</td></tr><tr><td>恒生港股通新经济</td><td>3833.54</td><td class="up">+1.73%</td></tr></tbody></table></div>
   </section>
 
   <section>
     <h2>主要板块</h2>
     <div class="sector-pair">
-      <div class="half"><h2 style="font-size:15px;">领涨行业</h2><div class="table-wrap"><table><thead><tr><th>板块</th><th>涨跌幅</th><th>换手率</th></tr></thead><tbody><tr><td>陶瓷行业</td><td class="up">+2.73%</td><td>—</td></tr><tr><td>家具行业</td><td class="up">+2.49%</td><td>—</td></tr><tr><td>化纤行业</td><td class="up">+2.25%</td><td>—</td></tr><tr><td>有色金属</td><td class="up">+1.83%</td><td>—</td></tr><tr><td>玻璃行业</td><td class="up">+1.66%</td><td>—</td></tr><tr><td>次新股</td><td class="up">+1.59%</td><td>—</td></tr><tr><td>医疗器械</td><td class="up">+1.46%</td><td>—</td></tr><tr><td>电子信息</td><td class="up">+1.29%</td><td>—</td></tr><tr><td>电子器件</td><td class="up">+1.22%</td><td>—</td></tr><tr><td>仪器仪表</td><td class="up">+1.14%</td><td>—</td></tr></tbody></table></div></div>
-      <div class="half"><h2 style="font-size:15px;">领跌行业</h2><div class="table-wrap"><table><thead><tr><th>板块</th><th>涨跌幅</th><th>换手率</th></tr></thead><tbody><tr><td>电力行业</td><td class="down">-2.36%</td><td>—</td></tr><tr><td>印刷包装</td><td class="down">-2.22%</td><td>—</td></tr><tr><td>供水供气</td><td class="down">-2.18%</td><td>—</td></tr><tr><td>摩托车</td><td class="down">-1.42%</td><td>—</td></tr><tr><td>金融行业</td><td class="down">-1.22%</td><td>—</td></tr><tr><td>农林牧渔</td><td class="down">-1.22%</td><td>—</td></tr><tr><td>酿酒行业</td><td class="down">-1.19%</td><td>—</td></tr><tr><td>传媒娱乐</td><td class="down">-1.13%</td><td>—</td></tr><tr><td>房地产</td><td class="down">-0.97%</td><td>—</td></tr><tr><td>生物制药</td><td class="down">-0.96%</td><td>—</td></tr></tbody></table></div></div>
+      <div class="half"><h2 style="font-size:15px;">领涨行业</h2><div class="table-wrap"><table><thead><tr><th>板块</th><th>涨跌幅</th><th>换手率</th></tr></thead><tbody><tr><td>其他养殖</td><td class="up">+10.69%</td><td>1.48%</td></tr><tr><td>种子</td><td class="up">+6.91%</td><td>5.69%</td></tr><tr><td>种植业</td><td class="up">+4.57%</td><td>3.07%</td></tr><tr><td>粮油加工</td><td class="up">+3.80%</td><td>2.87%</td></tr><tr><td>白银</td><td class="up">+3.72%</td><td>3.94%</td></tr><tr><td>粮食种植</td><td class="up">+3.72%</td><td>1.42%</td></tr><tr><td>半导体材料</td><td class="up">+3.50%</td><td>3.08%</td></tr><tr><td>集成电路制造</td><td class="up">+3.47%</td><td>1.19%</td></tr><tr><td>铁矿石</td><td class="up">+3.13%</td><td>1.22%</td></tr><tr><td>集成电路封测</td><td class="up">+3.12%</td><td>4.12%</td></tr></tbody></table></div></div>
+      <div class="half"><h2 style="font-size:15px;">涨幅居后行业</h2><div class="table-wrap"><table><thead><tr><th>板块</th><th>涨跌幅</th><th>换手率</th></tr></thead><tbody><tr><td>烘焙食品</td><td class="up">+1.05%</td><td>0.56%</td></tr><tr><td>塑料</td><td class="up">+1.05%</td><td>1.40%</td></tr><tr><td>钛白粉</td><td class="up">+1.06%</td><td>0.54%</td></tr><tr><td>合成树脂</td><td class="up">+1.08%</td><td>1.75%</td></tr><tr><td>有色金属</td><td class="up">+1.09%</td><td>1.13%</td></tr><tr><td>保健品</td><td class="up">+1.10%</td><td>1.06%</td></tr><tr><td>光伏加工设备</td><td class="up">+1.10%</td><td>0.73%</td></tr><tr><td>油服工程</td><td class="up">+1.11%</td><td>0.48%</td></tr><tr><td>光伏辅材</td><td class="up">+1.13%</td><td>0.67%</td></tr><tr><td>其他电源设备Ⅲ</td><td class="up">+1.14%</td><td>1.44%</td></tr></tbody></table></div></div>
     </div>
     <h2 style="margin-top:16px;">重点关注行业</h2>
-    <div class="table-wrap"><table><thead><tr><th>板块</th><th>涨跌幅</th><th>换手率</th></tr></thead><tbody><tr><td>有色金属</td><td class="up">+1.83%</td><td>—</td></tr><tr><td>煤炭行业</td><td class="up">+0.98%</td><td>—</td></tr><tr><td>汽车制造</td><td class="down">-0.05%</td><td>—</td></tr><tr><td>食品行业</td><td class="down">-0.63%</td><td>—</td></tr><tr><td>家电行业</td><td class="down">-0.76%</td><td>—</td></tr><tr><td>房地产</td><td class="down">-0.97%</td><td>—</td></tr><tr><td>酿酒行业</td><td class="down">-1.19%</td><td>—</td></tr><tr><td>电力行业</td><td class="down">-2.36%</td><td>—</td></tr></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>板块</th><th>涨跌幅</th><th>换手率</th></tr></thead><tbody><tr><td>半导体材料</td><td class="up">+3.50%</td><td>3.08%</td></tr><tr><td>半导体设备</td><td class="up">+2.56%</td><td>1.32%</td></tr><tr><td>半导体</td><td class="up">+2.41%</td><td>2.17%</td></tr><tr><td>个护小家电</td><td class="up">+2.02%</td><td>0.96%</td></tr><tr><td>通信网络设备及器件</td><td class="up">+1.54%</td><td>2.13%</td></tr><tr><td>光伏主材</td><td class="up">+1.49%</td><td>0.64%</td></tr><tr><td>光伏辅材</td><td class="up">+1.13%</td><td>0.67%</td></tr><tr><td>光伏加工设备</td><td class="up">+1.10%</td><td>0.73%</td></tr><tr><td>有色金属</td><td class="up">+1.09%</td><td>1.13%</td></tr></tbody></table></div>
     <h2 style="margin-top:16px;">热门概念</h2>
-    <p>陶瓷行业、家具行业、化纤行业、有色金属、玻璃行业、次新股、医疗器械、电子信息、电子器件、仪器仪表</p>
+    <p>转基因、昨日连板_含一字、培育钻石、粮食概念、高带宽内存、昨日连板、中芯概念、先进封装、存储芯片、第四代半导体</p>
   </section>
 
   <section>
-    <h2>全球市场</h2>
-    <div class="table-wrap"><table><thead><tr><th>市场</th><th>最新点位</th><th>涨跌幅</th></tr></thead><tbody><tr><td>道琼斯</td><td>53839.99</td><td class="up">+0.13%</td></tr><tr><td>纳斯达克</td><td>26803.03</td><td class="up">+0.81%</td></tr><tr><td>标普500</td><td>7798.99</td><td class="up">+0.65%</td></tr><tr><td>恒生指数</td><td>25092.07</td><td class="down">-1.20%</td></tr><tr><td>日经225</td><td>44946.64</td><td class="down">-0.90%</td></tr><tr><td>韩国KOSPI</td><td>6977.94</td><td class="up">+2.42%</td></tr></tbody></table></div>
+    <h2>板块观点</h2>
+    <ul class="views"><li>半导体材料今日走强，资金关注度上升；相关基金可等待回踩企稳后分批参与。</li><li>半导体设备今日走强，资金关注度上升；相关基金可等待回踩企稳后分批参与。</li><li>半导体今日走强，资金关注度上升；相关基金可等待回踩企稳后分批参与。</li><li>个护小家电今日走强，资金关注度上升；相关基金可等待回踩企稳后分批参与。</li><li>通信网络设备及器件今日走强，资金关注度上升；相关基金可等待回踩企稳后分批参与。</li><li>光伏主材今日小幅上涨，短线趋势偏稳；持有者按既定节奏操作，暂不加仓。</li><li>光伏辅材今日小幅上涨，短线趋势偏稳；持有者按既定节奏操作，暂不加仓。</li><li>光伏加工设备今日小幅上涨，短线趋势偏稳；持有者按既定节奏操作，暂不加仓。</li><li>有色金属今日小幅上涨，短线趋势偏稳；持有者按既定节奏操作，暂不加仓。</li></ul>
+  </section>
+
+  <section>
+    <h2>外盘动向</h2>
+    <div class="table-wrap"><table><thead><tr><th>市场</th><th>最新点位</th><th>涨跌幅</th></tr></thead><tbody><tr><td>道琼斯</td><td>53732.41</td><td class="down">-0.20%</td></tr><tr><td>纳斯达克</td><td>26729.16</td><td class="down">-0.28%</td></tr><tr><td>标普500</td><td>7785.76</td><td class="down">-0.17%</td></tr><tr><td>韩国KOSPI</td><td>6977.94</td><td class="up">+2.42%</td></tr><tr><td>日经225</td><td>68743.88</td><td class="up">+0.04%</td></tr><tr><td>恒生指数</td><td>25499.53</td><td class="up">+1.52%</td></tr><tr><td>台湾加权</td><td>46036.49</td><td class="up">+0.49%</td></tr><tr><td>英国富时100</td><td>10750.11</td><td class="down">-0.21%</td></tr><tr><td>德国DAX30</td><td>26440.31</td><td class="up">+0.53%</td></tr><tr><td>越南胡志明</td><td>1732.76</td><td class="up">+0.21%</td></tr></tbody></table></div>
   </section>
 
   <section>
     <h2>基金参考（场内ETF）</h2>
-    <div class="table-wrap"><table><thead><tr><th>ETF</th><th>最新价</th><th>涨跌幅</th></tr></thead><tbody><tr><td>沪深300ETF</td><td>4.73</td><td class="down">-0.06%</td></tr><tr><td>上证50ETF</td><td>3.02</td><td class="down">-0.53%</td></tr><tr><td>中证500ETF</td><td>8.00</td><td class="up">+0.23%</td></tr><tr><td>中证1000ETF</td><td>3.15</td><td class="up">+0.54%</td></tr><tr><td>科创50ETF</td><td>1.81</td><td class="up">+0.11%</td></tr><tr><td>创业板ETF</td><td>3.65</td><td class="up">+1.14%</td></tr><tr><td>半导体ETF</td><td>1.15</td><td class="up">+0.53%</td></tr><tr><td>证券ETF</td><td>1.09</td><td class="down">-1.27%</td></tr><tr><td>医药ETF</td><td>0.40</td><td class="down">-1.50%</td></tr><tr><td>新能源车ETF</td><td>1.67</td><td class="up">+0.60%</td></tr><tr><td>白酒ETF</td><td>0.44</td><td class="down">-1.78%</td></tr><tr><td>纳指ETF</td><td>2.26</td><td class="up">+1.71%</td></tr><tr><td>恒生互联网ETF</td><td>0.38</td><td class="down">-1.80%</td></tr><tr><td>黄金ETF</td><td>8.95</td><td class="down">-1.06%</td></tr><tr><td>红利ETF</td><td>3.30</td><td class="up">+0.70%</td></tr></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>ETF</th><th>最新价</th><th>涨跌幅</th></tr></thead><tbody><tr><td>沪深300ETF华泰柏瑞</td><td>4.73</td><td class="up">+0.17%</td></tr><tr><td>上证50ETF华夏</td><td>3.03</td><td class="up">+0.23%</td></tr><tr><td>中证500ETF南方</td><td>8.06</td><td class="up">+0.74%</td></tr><tr><td>中证1000ETF南方</td><td>3.16</td><td class="up">+0.41%</td></tr><tr><td>科创50ETF华夏</td><td>1.84</td><td class="up">+1.65%</td></tr><tr><td>创业板ETF易方达</td><td>3.65</td><td class="up">+0.16%</td></tr><tr><td>芯片ETF国泰</td><td>1.18</td><td class="up">+2.53%</td></tr><tr><td>证券ETF国泰</td><td>1.08</td><td class="down">-0.18%</td></tr><tr><td>医药ETF易方达</td><td>0.40</td><td class="up">+1.27%</td></tr><tr><td>新能源车ETF华夏</td><td>1.67</td><td class="up">+0.12%</td></tr><tr><td>酒ETF鹏华</td><td>0.43</td><td class="down">-2.72%</td></tr><tr><td>纳指ETF国泰</td><td>—</td><td>—</td></tr><tr><td>恒生互联网ETF华夏</td><td>0.39</td><td class="up">+1.05%</td></tr><tr><td>黄金ETF华安</td><td>9.06</td><td class="up">+1.26%</td></tr><tr><td>红利ETF华泰柏瑞</td><td>3.29</td><td class="down">-0.15%</td></tr></tbody></table></div>
   </section>
 
   <section>
     <h2>基金操作建议</h2>
-    <ol class="advice"><li>近 5 个交易日上证指数累计 +1.27%，整体处于震荡区间。宽基基金按既定节奏定投即可，行业基金轻仓参与，等趋势明朗后再加仓。</li><li>今日领涨方向集中在 陶瓷行业、家具行业、化纤行业、有色金属、玻璃行业，板块轮动较快，建议以分散配置代替押注单一行业。</li><li>外围市场 道琼斯 +0.13%，韩国KOSPI +2.42%，对 A 股情绪形成支撑；但外围波动仍可能传导，仓位不宜一次性打满。</li><li>今日场内 ETF 中相对强势的有 纳指ETF +1.71%、创业板ETF +1.14%、红利ETF +0.70%，可将其作为观察行业基金强弱的风向标。</li><li>建议保持组合分散：宽基打底、行业做卫星，单只行业基金不超过权益仓位的 20%，并设置止盈纪律。</li><li>以上为基于公开行情的规则化参考，不构成投资建议；实际决策请结合自身风险承受能力。</li></ol>
+    <ol class="advice"><li>近 5 个交易日上证指数累计上涨 +4.61%，短线趋势偏强。宽基指数基金可继续分批定投，行业基金建议等回调再买入，避免一次性追高。</li><li>今日领涨方向集中在 其他养殖、种子、种植业、粮油加工、白银，板块轮动较快，建议以分散配置代替押注单一行业。</li><li>外围市场 道琼斯 -0.20%，韩国KOSPI +2.42%，对 A 股情绪形成支撑；但外围波动仍可能传导，仓位不宜一次性打满。</li><li>今日场内 ETF 中相对强势的有 芯片ETF国泰 +2.53%、科创50ETF华夏 +1.65%、医药ETF易方达 +1.27%，可将其作为观察行业基金强弱的风向标。</li><li>重点观察指数中 恒生科技 +1.83%、恒生港股通新经济 +1.73% 相对强势，中证白酒 -3.31%、电网设备 +0.81% 相对偏弱；对应行业基金可顺势关注强势方向，弱势方向暂以观望为主。</li><li>建议保持组合分散：宽基打底、行业做卫星，单只行业基金不超过权益仓位的 20%，并设置止盈纪律。</li><li>以上为基于公开行情的规则化参考，不构成投资建议；实际决策请结合自身风险承受能力。</li></ol>
     <p class="notice">建议基于公开行情与历史走势的规则化分析生成，不构成投资建议。市场有风险，投资需谨慎。</p>
+  </section>
+
+  <section>
+    <h2>今日观点</h2>
+    <div class="today-view">A 股今日整体小幅上涨，创业板表现相对活跃，两市成交额约 10610 亿元。外围方面：美股道指 -0.20%，韩股 +2.42%；海外风险偏好整体偏暖，对 A 股情绪形成一定支撑。基金操作上，宽基按定投节奏执行，行业基金不追涨、等回调，保持组合分散。</div>
   </section>
 </div>
 <!-- BODY_END -->

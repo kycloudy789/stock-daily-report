@@ -26,6 +26,21 @@ GLOBAL_CODES = {
     "usIXIC": "纳斯达克",
     "usINX": "标普500",
     "hkHSI": "恒生指数",
+    "hkHSTECH": "恒生科技",
+}
+
+KEY_INDEX_CODES = {
+    "sh000510": "中证A500",
+    "sz399997": "中证白酒",
+    "sz399989": "中证医疗",
+    "sz399975": "证券公司",
+    "sz399986": "中证银行",
+    "sz399809": "保险主题",
+    "sh930641": "中证中药",
+    "sh930697": "家用电器",
+    "sh930997": "新能源车",
+    "sh931151": "光伏产业",
+    "hkHSTECH": "恒生科技",
 }
 
 ETF_CODES = {
@@ -109,6 +124,11 @@ def get_tencent_index_quotes() -> List[Dict[str, Any]]:
 
 def get_tencent_global_quotes() -> List[Dict[str, Any]]:
     return _fetch_quotes(GLOBAL_CODES)
+
+
+def get_tencent_key_quotes() -> List[Dict[str, Any]]:
+    """重点指数备用源：行业宽基与恒生科技。"""
+    return _fetch_quotes(KEY_INDEX_CODES)
 
 
 def get_tencent_etf_quotes() -> List[Dict[str, Any]]:

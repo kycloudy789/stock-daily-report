@@ -11,8 +11,10 @@ import logging
 import json
 import subprocess
 import time
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -23,6 +25,7 @@ from .tencent import (
     get_tencent_etf_quotes,
     get_tencent_global_quotes,
     get_tencent_index_quotes,
+    get_tencent_key_quotes,
     get_tencent_recent_summary,
 )
 
@@ -44,6 +47,23 @@ INDEX_SECIDS = [
     ("北证50", "0.899050"),
 ]
 
+KEY_INDEX_SECIDS = [
+    ("中证A500", "1.000510"),
+    ("中证白酒", "0.399997"),
+    ("中证医疗", "0.399989"),
+    ("证券公司", "0.399975"),
+    ("中证银行", "0.399986"),
+    ("保险主题", "0.399809"),
+    ("中证中药", "2.930641"),
+    ("家用电器", "2.930697"),
+    ("新能源车", "2.930997"),
+    ("光伏产业", "2.931151"),
+    ("电网设备", "90.BK0457"),
+    ("恒生科技", "124.HSTECH"),
+    ("恒生互联网", "124.HSIII"),
+    ("恒生港股通新经济", "124.HSSCNE"),
+]
+
 GLOBAL_SECIDS = [
     ("道琼斯", "100.DJIA"),
     ("纳斯达克100", "100.NDX"),
@@ -54,6 +74,7 @@ GLOBAL_SECIDS = [
     ("台湾加权", "100.TWII"),
     ("英国富时100", "100.FTSE"),
     ("德国DAX", "100.GDAXI"),
+    ("越南胡志明", "100.VNINDEX"),
 ]
 
 ETF_SECIDS = [
@@ -182,6 +203,11 @@ def get_index_quotes() -> List[Dict[str, Any]]:
     return get_quotes(INDEX_SECIDS)
 
 
+def get_key_index_quotes() -> List[Dict[str, Any]]:
+    """重点观察指数：行业、宽基与港股科技相关指数。"""
+    return get_quotes(KEY_INDEX_SECIDS)
+
+
 def get_global_quotes() -> List[Dict[str, Any]]:
     """全球主要股指实时行情。"""
     return get_quotes(GLOBAL_SECIDS)
@@ -299,6 +325,106 @@ def get_recent_summary(secid: str, days: int = 5) -> Dict[str, Any]:
     }
 
 
+def get_market_summary() -> Dict[str, Any]:
+    """两市情绪汇总：成交额、涨跌家数与涨跌停数量。"""
+    today = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")
+    data = fetch_json(
+        "https://push2ex.eastmoney.com/getTopicZDFenBu",
+        {
+            "ut": "7eea3edcaed734bea9cbfc24409ed989",
+            "dpt": "wz.ztzt",
+            "Pageindex": 0,
+            "pagesize": 1,
+            "sort": "fbt:asc",
+            "date": today,
+        },
+    )
+    fenbu = (data.get("data") or {}).get("fenbu") or []
+    up = down = flat = limit_up = limit_down = 0
+    amount = None
+    for item in fenbu:
+        if not isinstance(item, dict):
+            continue
+        for key, count in item.items():
+            try:
+                bucket = int(key)
+                count = int(count)
+            except (TypeError, ValueError):
+                continue
+            if bucket > 0:
+                up += count
+                if bucket >= 10:
+                    limit_up += count
+            elif bucket < 0:
+                down += count
+                if bucket <= -10:
+                    limit_down += count
+            else:
+                flat += count
+    if up or down or flat:
+        amount = sum(
+            row.get("成交额") or 0
+            for row in get_index_quotes()
+            if row.get("名称") in ("上证指数", "深证成指")
+        ) or None
+    return {
+        "两市成交额": amount,
+        "上涨家数": up,
+        "下跌家数": down,
+        "平盘家数": flat,
+        "涨停家数": limit_up,
+        "跌停家数": limit_down,
+    }
+
+
+def _summary_from_indexes() -> Dict[str, Any]:
+    """腾讯备用源：用沪深两指数成交额估算两市成交额，涨跌家数暂缺。"""
+    rows = get_tencent_index_quotes()
+    amount = sum(
+        row.get("成交额") or 0
+        for row in rows
+        if row.get("名称") in ("上证指数", "深证成指")
+    ) or None
+    return {
+        "两市成交额": amount,
+        "上涨家数": 0,
+        "下跌家数": 0,
+        "平盘家数": 0,
+        "涨停家数": 0,
+        "跌停家数": 0,
+    }
+
+
+def get_key_index_quotes_with_hang_seng() -> List[Dict[str, Any]]:
+    """东财重点指数，并补腾讯恒生科技（东财接口偶发不返回该指数）。"""
+    rows = get_quotes(KEY_INDEX_SECIDS)
+    # 东财返回的名称带“指数”后缀，统一成简报展示名，避免重复补齐。
+    expected_names = {secid.split(".")[-1]: name for name, secid in KEY_INDEX_SECIDS}
+    for row in rows:
+        code = str(row.get("代码") or "")
+        if code in expected_names:
+            row["名称"] = expected_names[code]
+    # 东方财富批量接口偶发丢弃 930 系指数，逐个补齐缺失项。
+    got = {str(row.get("名称", "")) for row in rows}
+    missing = [name for name, secid in KEY_INDEX_SECIDS if name not in got]
+    for name in missing:
+        try:
+            secid = next(secid for item_name, secid in KEY_INDEX_SECIDS if item_name == name)
+            rows.extend(get_quotes([(name, secid)]))
+        except Exception as exc:
+            LOGGER.warning("补齐重点指数 %s 失败：%s", name, exc)
+    names = {str(row.get("名称", "")) for row in rows}
+    if "恒生科技" not in names:
+        try:
+            hstech_rows = get_tencent_key_quotes()
+            rows.extend(row for row in hstech_rows if str(row.get("名称", "")) == "恒生科技")
+        except Exception as exc:
+            LOGGER.warning("腾讯恒生科技备用失败：%s", exc)
+    order = [name for name, _ in KEY_INDEX_SECIDS]
+    rows.sort(key=lambda row: order.index(str(row.get("名称"))) if str(row.get("名称")) in order else 99)
+    return rows
+
+
 def _fallback_global_quotes() -> List[Dict[str, Any]]:
     """合并腾讯、新浪、Naver 备用源，尽量补全球主要指数。"""
     rows: Dict[str, Dict[str, Any]] = {}
@@ -331,6 +457,8 @@ def build_market_snapshot() -> Dict[str, Any]:
         "板块": (get_sina_sector_highlights, "新浪"),
         "热门概念": (get_sina_concept_highlights, "新浪行业替代"),
         "近期": (lambda: get_tencent_recent_summary("sh000001", days=6), "腾讯"),
+        "汇总": (_summary_from_indexes, "腾讯"),
+        "重点指数": (get_tencent_key_quotes, "腾讯"),
     }
     providers = [
         ("指数", "东方财富", get_index_quotes),
@@ -339,6 +467,8 @@ def build_market_snapshot() -> Dict[str, Any]:
         ("板块", "东方财富", get_sector_highlights),
         ("热门概念", "东方财富", get_hot_concepts),
         ("近期", "东方财富", lambda: get_recent_summary("1.000001", days=6)),
+        ("汇总", "东方财富", get_market_summary),
+        ("重点指数", "东方财富", get_key_index_quotes_with_hang_seng),
     ]
     snapshot: Dict[str, Any] = {}
     sources: Dict[str, str] = {}

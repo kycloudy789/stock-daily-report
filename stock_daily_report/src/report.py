@@ -41,6 +41,34 @@ def _sector_names(sectors: Any, limit: int = 5) -> str:
     return "、".join(names) if names else "暂无数据"
 
 
+def _overview_text(snapshot: Dict[str, Any]) -> List[str]:
+    """市场概览：成交额、涨跌家数与涨跌停数量。"""
+    summary = snapshot.get("汇总") or {}
+    lines: List[str] = []
+    if isinstance(summary, dict):
+        amount = summary.get("两市成交额")
+        up = summary.get("上涨家数")
+        down = summary.get("下跌家数")
+        limit_up = summary.get("涨停家数")
+        limit_down = summary.get("跌停家数")
+        parts = []
+        if amount not in (None, 0):
+            try:
+                parts.append(f"两市成交额约 {float(amount) / 1e8:.0f} 亿元")
+            except (TypeError, ValueError):
+                parts.append("两市成交额数据暂缺")
+        else:
+            parts.append("两市成交额数据暂缺")
+        if up not in (None, 0) or down not in (None, 0):
+            parts.append(f"上涨 {up} 家 / 下跌 {down} 家")
+        if limit_up not in (None, 0) or limit_down not in (None, 0):
+            parts.append(f"涨停 {limit_up} 家 / 跌停 {limit_down} 家")
+        lines.append("；".join(parts))
+    if not lines:
+        lines.append("市场情绪数据暂缺，可参考下方指数与板块表现。")
+    return lines
+
+
 def _find(rows: Any, name: str) -> Dict[str, Any] | None:
     if not isinstance(rows, list):
         return None
@@ -140,9 +168,125 @@ def build_advice(snapshot: Dict[str, Any]) -> List[str]:
             )
             advice.append(f"今日场内 ETF 中相对强势的有 {strong_text}，可将其作为观察行业基金强弱的风向标。")
 
+    summary = snapshot.get("汇总") or {}
+    if isinstance(summary, dict):
+        up = summary.get("上涨家数")
+        down = summary.get("下跌家数")
+        if up not in (None, 0) and down not in (None, 0):
+            try:
+                ratio = float(up) / float(down)
+                if ratio < 0.7:
+                    advice.append(f"今日上涨 {up} 家、下跌 {down} 家，市场赚钱效应弱；基金操作宜以防守和定投为主，不追高。")
+                elif ratio > 1.5:
+                    advice.append(f"今日上涨 {up} 家、下跌 {down} 家，市场赚钱效应较好；可维持既定仓位，行业基金小步分批参与。")
+            except (TypeError, ValueError, ZeroDivisionError):
+                pass
+
+    key_rows = snapshot.get("重点指数") or []
+    if isinstance(key_rows, list) and key_rows:
+        key_with_change = [
+            r for r in key_rows
+            if r.get("涨跌幅") is not None and abs(float(r["涨跌幅"])) >= 0.5
+        ]
+        strong_key = sorted(key_with_change, key=lambda x: float(x["涨跌幅"]), reverse=True)[:2]
+        weak_key = sorted(key_with_change, key=lambda x: float(x["涨跌幅"]))[:2]
+        if strong_key and weak_key:
+            strong_text = "、".join(f"{s.get('名称', '')} {_pct(s.get('涨跌幅'))}" for s in strong_key)
+            weak_text = "、".join(f"{w.get('名称', '')} {_pct(w.get('涨跌幅'))}" for w in weak_key)
+            advice.append(
+                f"重点观察指数中 {strong_text} 相对强势，{weak_text} 相对偏弱；"
+                "对应行业基金可顺势关注强势方向，弱势方向暂以观望为主。"
+            )
+
     advice.append("建议保持组合分散：宽基打底、行业做卫星，单只行业基金不超过权益仓位的 20%，并设置止盈纪律。")
     advice.append("以上为基于公开行情的规则化参考，不构成投资建议；实际决策请结合自身风险承受能力。")
     return advice
+
+
+def build_sector_views(snapshot: Dict[str, Any]) -> List[str]:
+    """按重点行业生成板块观点，缺失时用领涨领跌行业补足。"""
+    views: List[str] = []
+    sectors = snapshot.get("板块") or {}
+    key_rows = sectors.get("重点行业") if isinstance(sectors, dict) else None
+    if not isinstance(key_rows, list) or not key_rows:
+        key_rows = []
+    if not key_rows:
+        key_rows = (sectors.get("领涨行业") if isinstance(sectors, dict) else None) or []
+    for row in key_rows:
+        name = str(row.get("名称", ""))
+        change = row.get("涨跌幅")
+        if not name or change is None:
+            continue
+        try:
+            change = float(change)
+        except (TypeError, ValueError):
+            continue
+        if change >= 1.5:
+            views.append(f"{name}今日走强，资金关注度上升；相关基金可等待回踩企稳后分批参与。")
+        elif change >= 0.3:
+            views.append(f"{name}今日小幅上涨，短线趋势偏稳；持有者按既定节奏操作，暂不加仓。")
+        elif change <= -1.5:
+            views.append(f"{name}今日明显走弱，短线承压；相关基金暂以观望为主，不急于抄底。")
+        elif change <= -0.3:
+            views.append(f"{name}今日震荡回调，消化前期抛压；基金仓位可控制，等趋势明朗再操作。")
+        else:
+            views.append(f"{name}今日窄幅震荡，方向不明；多看少动，等待明确信号。")
+    return views[:12]
+
+
+def build_today_view(snapshot: Dict[str, Any]) -> str:
+    """今日观点：结合指数、成交与外围方向生成一段总结。"""
+    indexes = snapshot.get("指数") or []
+    sh = _find(indexes, "上证指数")
+    cyb = _find(indexes, "创业板指")
+    summary = snapshot.get("汇总") or {}
+    global_rows = snapshot.get("全球") or []
+    dow = _find(global_rows, "道琼斯")
+    kospi = _find(global_rows, "韩国KOSPI")
+
+    parts = ["A 股今日整体"]
+    if sh:
+        sh_change = sh.get("涨跌幅")
+        if sh_change is not None:
+            if float(sh_change) > 0.5:
+                parts.append("震荡上行")
+            elif float(sh_change) > 0:
+                parts.append("小幅上涨")
+            elif float(sh_change) > -0.5:
+                parts.append("窄幅震荡")
+            else:
+                parts.append("震荡走弱")
+    if cyb:
+        cyb_change = cyb.get("涨跌幅")
+        if cyb_change is not None:
+            if float(cyb_change) > 0:
+                parts.append("，创业板表现相对活跃")
+            else:
+                parts.append("，成长风格相对偏弱")
+    amount = summary.get("两市成交额") if isinstance(summary, dict) else None
+    if amount:
+        try:
+            parts.append(f"，两市成交额约 {float(amount) / 1e8:.0f} 亿元")
+        except (TypeError, ValueError):
+            pass
+    parts.append("。")
+    text = "".join(parts)
+
+    if dow or kospi:
+        foreign = []
+        if dow:
+            foreign.append(f"美股道指 {_pct(dow.get('涨跌幅'))}")
+        if kospi:
+            foreign.append(f"韩股 {_pct(kospi.get('涨跌幅'))}")
+        text += f"外围方面：{'，'.join(foreign)}；海外风险偏好整体"
+        if any("+" in part for part in foreign):
+            text += "偏暖，对 A 股情绪形成一定支撑。"
+        else:
+            text += "偏谨慎，A 股操作宜控制仓位。"
+    else:
+        text += "外围数据暂缺，建议同步关注晚间美股表现。"
+    text += "基金操作上，宽基按定投节奏执行，行业基金不追涨、等回调，保持组合分散。"
+    return text
 
 
 def build_summary(snapshot: Dict[str, Any], target_date: date) -> str:
@@ -211,6 +355,56 @@ def _index_table(rows: Any) -> str:
     return _table(headers, table_rows, classes)
 
 
+def _key_index_table(rows: Any) -> str:
+    if not isinstance(rows, list) or not rows:
+        return '<p class="empty">数据暂缺，稍后重试。</p>'
+    headers = ["指数", "最新点位", "涨跌幅"]
+    table_rows = []
+    classes = []
+    for row in rows:
+        table_rows.append([
+            row.get("名称", ""),
+            _fmt(row.get("最新价")),
+            _pct(row.get("涨跌幅")),
+        ])
+        classes.append(["", "", _css_class(row.get("涨跌幅"))])
+    return _table(headers, table_rows, classes)
+
+
+def _overview_html(snapshot: Dict[str, Any]) -> str:
+    summary = snapshot.get("汇总") or {}
+    items = []
+    if isinstance(summary, dict):
+        amount = summary.get("两市成交额")
+        if amount not in (None, 0):
+            try:
+                items.append(("两市成交额", f"约 {float(amount) / 1e8:.0f} 亿元"))
+            except (TypeError, ValueError):
+                items.append(("两市成交额", "数据暂缺"))
+        else:
+            items.append(("两市成交额", "数据暂缺"))
+        up = summary.get("上涨家数")
+        down = summary.get("下跌家数")
+        if up not in (None, 0) or down not in (None, 0):
+            items.append(("涨跌家数", f"{up} / {down}"))
+        else:
+            items.append(("涨跌家数", "数据暂缺"))
+        limit_up = summary.get("涨停家数")
+        limit_down = summary.get("跌停家数")
+        if limit_up not in (None, 0) or limit_down not in (None, 0):
+            items.append(("涨停 / 跌停", f"{limit_up} / {limit_down}"))
+        else:
+            items.append(("涨停 / 跌停", "数据暂缺"))
+    if not items:
+        items = [("两市成交额", "数据暂缺"), ("涨跌家数", "数据暂缺"), ("涨停 / 跌停", "数据暂缺")]
+    cards = "".join(
+        f'<div class="stat"><div class="stat-label">{html.escape(str(label))}</div>'
+        f'<div class="stat-value">{html.escape(str(value))}</div></div>'
+        for label, value in items
+    )
+    return f'<div class="overview-grid">{cards}</div>'
+
+
 def _sector_table(rows: Any) -> str:
     if not isinstance(rows, list) or not rows:
         return '<p class="empty">数据暂缺，稍后重试。</p>'
@@ -225,6 +419,23 @@ def _sector_table(rows: Any) -> str:
         ])
         classes.append(["", _css_class(row.get("涨跌幅")), ""])
     return _table(headers, table_rows, classes)
+
+
+def _sector_label(rows: Any, fallback: str = "领跌行业") -> str:
+    """市场普涨时用更准确的标题，避免领跌列表仍显示上涨。"""
+    if isinstance(rows, list) and rows:
+        changes = []
+        for row in rows:
+            change = row.get("涨跌幅")
+            if change is None:
+                return fallback
+            try:
+                changes.append(float(change))
+            except (TypeError, ValueError):
+                return fallback
+        if changes and all(value >= 0 for value in changes):
+            return "涨幅居后行业"
+    return fallback
 
 
 def _global_table(rows: Any) -> str:
@@ -282,11 +493,20 @@ td { font-size: 14px; }
 .advice li::before { content: "◆"; position: absolute; left: 12px; top: 10px; color: #c2410c; }
 .notice { font-size: 12px; color: #7b8794; margin-top: 8px; }
 .empty { color: #7b8794; font-size: 13px; }
+.overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.stat { background: #f7f9fb; border: 1px solid #e4e7eb; border-radius: 6px; padding: 10px 12px; min-width: 0; }
+.stat-label { color: #52606d; font-size: 12px; }
+.stat-value { font-size: 16px; font-weight: 700; color: #0b3b5c; margin-top: 2px; word-break: break-all; }
+.views { list-style: none; margin: 0; padding: 0; }
+.views li { position: relative; padding: 8px 10px 8px 26px; margin-bottom: 6px; background: #f7f9fb; border-radius: 6px; font-size: 13px; line-height: 1.5; }
+.views li::before { content: "·"; position: absolute; left: 12px; top: 7px; color: #c2410c; font-weight: 700; }
+.today-view { background: #fff7ed; border: 1px solid #fbd38d; border-radius: 6px; padding: 12px 14px; font-size: 14px; line-height: 1.7; }
 @media (max-width: 620px) {
   .wrap { padding: 14px 10px 32px; }
   .header h1 { font-size: 20px; }
   .sector-pair { grid-template-columns: 1fr; }
   section { padding: 12px; }
+  .overview-grid { grid-template-columns: 1fr 1fr; }
 }
 """
 
@@ -302,11 +522,15 @@ def build_html(snapshot: Dict[str, Any], target_date: date, source_time: str) ->
         )
 
     advice_items = "".join(f"<li>{html.escape(text)}</li>" for text in build_advice(snapshot))
+    sector_views = "".join(f"<li>{html.escape(text)}</li>" for text in build_sector_views(snapshot))
     top_html = _sector_table(sectors.get("领涨行业") if isinstance(sectors, dict) else None)
     bottom_html = _sector_table(sectors.get("领跌行业") if isinstance(sectors, dict) else None)
+    bottom_label = _sector_label(sectors.get("领跌行业") if isinstance(sectors, dict) else None)
     key_html = _sector_table(sectors.get("重点行业") if isinstance(sectors, dict) else None)
     concepts = snapshot.get("热门概念") or []
     concept_text = _sector_names(concepts, 10) if isinstance(concepts, list) and concepts else "概念板块数据暂缺，可参考上方领涨行业。"
+    overview_text = "；".join(_overview_text(snapshot))
+    today_view = build_today_view(snapshot)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -322,20 +546,28 @@ def build_html(snapshot: Dict[str, Any], target_date: date, source_time: str) ->
 <!-- BODY_START -->
 <div class="wrap">
   <div class="header">
-    <h1>{html.escape(str(target_date))} 每日股市与基金简报<span class="tag">盘中速览</span></h1>
+    <h1>{html.escape(str(target_date))} 每日股市与基金简报<span class="tag">交易日速览</span></h1>
     <div class="meta">数据截至 {html.escape(source_time)}（北京时间）· 数据来源：{html.escape(_source_text(snapshot))} · {html.escape(recent_text)}</div>
   </div>
 
   <section>
-    <h2>A股主要指数</h2>
+    <h2>市场概览</h2>
+    {_overview_html(snapshot)}
+    <p>{html.escape(overview_text)}</p>
+    <h2 style="margin-top:14px;">A股主要指数</h2>
     {_index_table(snapshot.get("指数"))}
+  </section>
+
+  <section>
+    <h2>重点指数观察</h2>
+    {_key_index_table(snapshot.get("重点指数"))}
   </section>
 
   <section>
     <h2>主要板块</h2>
     <div class="sector-pair">
       <div class="half"><h2 style="font-size:15px;">领涨行业</h2>{top_html}</div>
-      <div class="half"><h2 style="font-size:15px;">领跌行业</h2>{bottom_html}</div>
+      <div class="half"><h2 style="font-size:15px;">{bottom_label}</h2>{bottom_html}</div>
     </div>
     <h2 style="margin-top:16px;">重点关注行业</h2>
     {key_html}
@@ -344,7 +576,12 @@ def build_html(snapshot: Dict[str, Any], target_date: date, source_time: str) ->
   </section>
 
   <section>
-    <h2>全球市场</h2>
+    <h2>板块观点</h2>
+    <ul class="views">{sector_views}</ul>
+  </section>
+
+  <section>
+    <h2>外盘动向</h2>
     {_global_table(snapshot.get("全球"))}
   </section>
 
@@ -358,6 +595,11 @@ def build_html(snapshot: Dict[str, Any], target_date: date, source_time: str) ->
     <ol class="advice">{advice_items}</ol>
     <p class="notice">建议基于公开行情与历史走势的规则化分析生成，不构成投资建议。市场有风险，投资需谨慎。</p>
   </section>
+
+  <section>
+    <h2>今日观点</h2>
+    <div class="today-view">{html.escape(today_view)}</div>
+  </section>
 </div>
 <!-- BODY_END -->
 </body>
@@ -370,9 +612,32 @@ def build_markdown(snapshot: Dict[str, Any], target_date: date) -> str:
     lines = [
         f"# {target_date.isoformat()} 每日股市与基金简报",
         "",
+        "## 市场概览",
+    ]
+    summary = snapshot.get("汇总") or {}
+    if isinstance(summary, dict):
+        amount = summary.get("两市成交额")
+        if amount:
+            try:
+                lines.append(f"- 两市成交额：约 {float(amount) / 1e8:.0f} 亿元")
+            except (TypeError, ValueError):
+                pass
+        up = summary.get("上涨家数")
+        down = summary.get("下跌家数")
+        if up or down:
+            lines.append(f"- 涨跌家数：{up} / {down}")
+        limit_up = summary.get("涨停家数")
+        limit_down = summary.get("跌停家数")
+        if limit_up or limit_down:
+            lines.append(f"- 涨停 / 跌停：{limit_up} / {limit_down}")
+    lines += [
+        "",
         "## A股主要指数",
     ]
     for row in snapshot.get("指数") or []:
+        lines.append(f"- {row.get('名称', '')}：{_fmt(row.get('最新价'))}（{_pct(row.get('涨跌幅'))}）")
+    lines += ["", "## 重点指数观察"]
+    for row in snapshot.get("重点指数") or []:
         lines.append(f"- {row.get('名称', '')}：{_fmt(row.get('最新价'))}（{_pct(row.get('涨跌幅'))}）")
     lines += ["", "## 主要板块"]
     sectors = snapshot.get("板块") or {}
@@ -380,10 +645,12 @@ def build_markdown(snapshot: Dict[str, Any], target_date: date) -> str:
         lines += ["### 领涨行业"]
         for row in sectors.get("领涨行业") or []:
             lines.append(f"- {row.get('名称', '')}：{_pct(row.get('涨跌幅'))}")
-        lines += ["### 领跌行业"]
+        lines += [f"### {_sector_label(sectors.get('领跌行业'))}"]
         for row in sectors.get("领跌行业") or []:
             lines.append(f"- {row.get('名称', '')}：{_pct(row.get('涨跌幅'))}")
-    lines += ["", "## 全球市场"]
+    lines += ["", "## 板块观点"]
+    lines.extend(f"- {text}" for text in build_sector_views(snapshot))
+    lines += ["", "## 外盘动向"]
     for row in snapshot.get("全球") or []:
         lines.append(f"- {row.get('名称', '')}：{_fmt(row.get('最新价'))}（{_pct(row.get('涨跌幅'))}）")
     lines += ["", "## 基金参考（场内ETF）"]
@@ -391,6 +658,7 @@ def build_markdown(snapshot: Dict[str, Any], target_date: date) -> str:
         lines.append(f"- {row.get('名称', '')}：{_fmt(row.get('最新价'))}（{_pct(row.get('涨跌幅'))}）")
     lines += ["", "## 基金操作建议", ""]
     lines.extend(f"- {text}" for text in build_advice(snapshot))
+    lines += ["", "## 今日观点", "", build_today_view(snapshot)]
     lines += ["", "> 不构成投资建议，市场有风险，投资需谨慎。"]
     return "\n".join(lines)
 
