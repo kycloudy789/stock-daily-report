@@ -102,6 +102,7 @@ def _fetch_quotes(code_names: Dict[str, str]) -> List[Dict[str, Any]]:
         amount = _to_float(fields[37])
         rows[code] = {
             "最新价": _to_float(fields[3]),
+            "昨收": _to_float(fields[4]),
             "涨跌额": _to_float(fields[31]),
             "涨跌幅": _to_float(fields[32]),
             "成交额": amount * 10000 if amount is not None else None,

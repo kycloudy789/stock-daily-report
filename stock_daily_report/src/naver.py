@@ -46,4 +46,5 @@ def get_kospi_quote() -> Dict[str, Any]:
         "代码": "KS11",
         "最新价": latest,
         "涨跌幅": change,
+        "昨收": round(latest / (1 + change / 100), 2),
     }

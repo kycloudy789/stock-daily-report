@@ -3,7 +3,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-from src.report import build_advice, build_html, build_summary
+from src.report import build_advice, build_fund_suggestions, build_html, build_summary
 
 
 class ReportTest(unittest.TestCase):
@@ -25,6 +25,12 @@ class ReportTest(unittest.TestCase):
         self.assertIn("半导体", html)
         self.assertIn("两市成交额", html)
         self.assertIn("恒生科技", html)
+        self.assertIn("昨日收盘", html)
+        self.assertIn("情绪评价", html)
+        self.assertIn("重点科技与医药方向", html)
+        self.assertIn("今日基金标的参考", html)
+        self.assertIn("近一周", html)
+        self.assertIn("近一月", html)
 
     def test_advice_generates_fund_tips(self):
         advice = build_advice(self.snapshot)
@@ -52,6 +58,14 @@ class ReportTest(unittest.TestCase):
         html = build_html(snapshot, date(2026, 8, 14), "2026-08-14 14:00")
         self.assertIn("东方财富", html)
         self.assertIn("腾讯/新浪/Naver", html)
+
+    def test_fund_suggestions_include_tech_and_medicine(self):
+        suggestions = build_fund_suggestions(self.snapshot)
+        joined = "".join(suggestions)
+        self.assertTrue(suggestions)
+        self.assertIn("科创50ETF", joined)
+        self.assertIn("医药ETF", joined)
+        self.assertTrue(any("近一周" in text for text in suggestions))
 
 
 if __name__ == "__main__":

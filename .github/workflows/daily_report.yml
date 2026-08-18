@@ -2,8 +2,8 @@ name: 每日股市与基金简报
 
 on:
   schedule:
-    # 周一至周五 06:00 UTC，即北京时间 14:00
-    - cron: '0 6 * * 1-5'
+    # 周一至周五 06:05 UTC，即北京时间 14:05
+    - cron: '5 6 * * 1-5'
   workflow_dispatch:
 
 permissions:

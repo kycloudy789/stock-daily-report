@@ -2,11 +2,12 @@
 
 数据来源为东方财富公开 HTTP 接口，未使用任何需要登录或授权的服务。
 所有接口均为只读查询，接口返回字段含义：
-  f2 最新价，f3 涨跌幅，f4 涨跌额，f6 成交额，f8 换手率
+  f2 最新价，f3 涨跌幅，f4 涨跌额，f6 成交额，f8 换手率，f18 昨收
 """
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import json
 import subprocess
@@ -98,7 +99,18 @@ ETF_SECIDS = [
 KEY_SECTOR_KEYWORDS = [
     "银行", "证券", "保险", "白酒", "医药", "半导体", "新能源", "光伏",
     "军工", "地产", "煤炭", "有色金属", "电力", "计算机", "通信", "汽车",
-    "家电", "食品饮料", "人工智能", "机器人",
+    "家电", "食品饮料", "人工智能", "机器人", "AI应用", "算力", "光模块",
+]
+
+TECH_MEDICINE_KEYWORDS = [
+    "AI应用", "AI", "AIGC", "人工智能", "算力", "CPO", "光模块",
+    "通信", "半导体", "芯片", "软件", "计算机", "电子", "元件", "机器人",
+    "医药", "创新药", "医疗", "生物", "中药",
+]
+
+TECH_MEDICINE_PRIORITY = [
+    "AI应用", "人工智能", "算力", "光模块", "通信", "半导体", "芯片",
+    "软件", "计算机", "机器人", "创新药", "医药", "医疗", "生物医药",
 ]
 
 
@@ -175,12 +187,13 @@ def get_quotes(secid_pairs: List[tuple[str, str]]) -> List[Dict[str, Any]]:
         {
             "fltt": 2,
             "invt": 2,
-            "fields": "f12,f14,f2,f3,f4,f6,f8",
+            "fields": "f12,f14,f2,f3,f4,f6,f8,f18",
             "secids": secids,
         },
     )
     diff = (data.get("data") or {}).get("diff") or []
     name_map = {secid: name for name, secid in secid_pairs}
+    secid_by_code = {secid.split(".", 1)[1]: secid for _, secid in secid_pairs}
     result: List[Dict[str, Any]] = []
     for item in diff:
         if not isinstance(item, dict):
@@ -189,11 +202,13 @@ def get_quotes(secid_pairs: List[tuple[str, str]]) -> List[Dict[str, Any]]:
         result.append({
             "名称": item.get("f14") or name_map.get(code, code),
             "代码": code,
+            "secid": secid_by_code.get(code, ""),
             "最新价": _to_float(item.get("f2")),
             "涨跌幅": _to_float(item.get("f3")),
             "涨跌额": _to_float(item.get("f4")),
             "成交额": _to_float(item.get("f6")),
             "换手率": _to_float(item.get("f8")),
+            "昨收": _to_float(item.get("f18")),
         })
     return result
 
@@ -231,7 +246,7 @@ def get_sector_list(fs: str = "m:90+t:2+f:!50", page_size: int = 2000) -> List[D
             "invt": 2,
             "fid": "f3",
             "fs": fs,
-            "fields": "f12,f14,f2,f3,f4,f6,f8",
+            "fields": "f12,f14,f2,f3,f4,f6,f8,f18",
         },
     )
     diff = (data.get("data") or {}).get("diff") or []
@@ -242,11 +257,13 @@ def get_sector_list(fs: str = "m:90+t:2+f:!50", page_size: int = 2000) -> List[D
         result.append({
             "名称": item.get("f14") or item.get("f12") or "",
             "代码": item.get("f12") or "",
+            "secid": f"90.{item.get('f12') or ''}",
             "最新价": _to_float(item.get("f2")),
             "涨跌幅": _to_float(item.get("f3")),
             "涨跌额": _to_float(item.get("f4")),
             "成交额": _to_float(item.get("f6")),
             "换手率": _to_float(item.get("f8")),
+            "昨收": _to_float(item.get("f18")),
         })
     return result
 
@@ -276,6 +293,41 @@ def get_hot_concepts(top_n: int = 10) -> List[Dict[str, Any]]:
     """热门概念板块。"""
     concepts = get_sector_list(fs="m:90+t:3+f:!50", page_size=500)
     return _sort_by_change(concepts, reverse=True)[:top_n]
+
+
+def get_tech_medicine_focus(top_n: int = 14) -> List[Dict[str, Any]]:
+    """重点科技与医药方向：从行业与概念板块中筛选 AI 应用、通信、半导体、医药等。"""
+    candidates: Dict[str, Dict[str, Any]] = {}
+    try:
+        for row in get_sector_list(fs="m:90+t:2+f:!50", page_size=2000):
+            name = str(row.get("名称", ""))
+            if name:
+                candidates.setdefault(name, row)
+    except Exception as exc:
+        LOGGER.warning("采集科技医药行业板块失败：%s", exc)
+    try:
+        for row in get_sector_list(fs="m:90+t:3+f:!50", page_size=500):
+            name = str(row.get("名称", ""))
+            if name:
+                candidates.setdefault(name, row)
+    except Exception as exc:
+        LOGGER.warning("采集科技医药概念板块失败：%s", exc)
+
+    selected = [
+        row for row in candidates.values()
+        if any(keyword in str(row.get("名称", "")) for keyword in TECH_MEDICINE_KEYWORDS)
+    ]
+
+    def sort_key(row: Dict[str, Any]) -> tuple:
+        name = str(row.get("名称", ""))
+        priority = next(
+            (index for index, keyword in enumerate(TECH_MEDICINE_PRIORITY) if keyword in name),
+            99,
+        )
+        change = float(row["涨跌幅"]) if row.get("涨跌幅") is not None else -999
+        return (priority, -change)
+
+    return sorted(selected, key=sort_key)[:top_n]
 
 
 def get_kline(secid: str, limit: int = 10) -> List[Dict[str, Any]]:
@@ -425,6 +477,81 @@ def get_key_index_quotes_with_hang_seng() -> List[Dict[str, Any]]:
     return rows
 
 
+def _resolve_kline_secid(row: Dict[str, Any]) -> str:
+    if not isinstance(row, dict):
+        return ""
+    secid = row.get("secid")
+    if secid:
+        return str(secid)
+    name = str(row.get("名称", ""))
+    for pairs in (INDEX_SECIDS, KEY_INDEX_SECIDS, GLOBAL_SECIDS, ETF_SECIDS):
+        for item_name, item_secid in pairs:
+            if item_name == name:
+                return item_secid
+    code = str(row.get("代码", ""))
+    if code.startswith("BK"):
+        return f"90.{code}"
+    return ""
+
+
+def attach_trends(snapshot: Dict[str, Any], days: int = 21, max_workers: int = 6) -> None:
+    """为指数、板块、外盘与 ETF 抓取近一月日 K 线并写入 snapshot['走势']。"""
+    rows: List[Dict[str, Any]] = []
+    for key in ("指数", "重点指数", "全球", "ETF", "热门概念", "重点方向"):
+        value = snapshot.get(key)
+        if isinstance(value, list):
+            rows.extend(value)
+    sectors = snapshot.get("板块") or {}
+    if isinstance(sectors, dict):
+        for key in ("领涨行业", "领跌行业", "重点行业"):
+            value = sectors.get(key)
+            if isinstance(value, list):
+                rows.extend(value)
+
+    targets: Dict[str, str] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("名称", ""))
+        secid = _resolve_kline_secid(row)
+        if name and secid and name not in targets:
+            targets[name] = secid
+    if not targets:
+        snapshot["走势"] = {}
+        return
+
+    def fetch_history(name: str) -> tuple:
+        try:
+            klines = get_kline(targets[name], limit=days)
+            if len(klines) >= 2:
+                return name, {"secid": targets[name], "明细": klines}
+        except Exception as exc:
+            LOGGER.warning("获取 %s 近一月走势失败：%s", name, exc)
+        return name, None
+
+    trends: Dict[str, Any] = {}
+    try:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {pool.submit(fetch_history, name): name for name in targets}
+            for future in as_completed(futures):
+                name, result = future.result()
+                if result:
+                    trends[name] = result
+    except Exception as exc:
+        LOGGER.warning("抓取走势数据部分失败：%s", exc)
+
+    # 行情接口缺少昨收时，用日 K 线倒数第二个收盘价回填。
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if row.get("昨收") not in (None, "", "-", "--"):
+            continue
+        detail = trends.get(str(row.get("名称", "")))
+        if isinstance(detail, dict) and len(detail.get("明细") or []) >= 2:
+            row["昨收"] = detail["明细"][-2]["收盘价"]
+    snapshot["走势"] = trends
+
+
 def _fallback_global_quotes() -> List[Dict[str, Any]]:
     """合并腾讯、新浪、Naver 备用源，尽量补全球主要指数。"""
     rows: Dict[str, Dict[str, Any]] = {}
@@ -459,6 +586,7 @@ def build_market_snapshot() -> Dict[str, Any]:
         "近期": (lambda: get_tencent_recent_summary("sh000001", days=6), "腾讯"),
         "汇总": (_summary_from_indexes, "腾讯"),
         "重点指数": (get_tencent_key_quotes, "腾讯"),
+        "重点方向": (lambda: get_sina_sector_highlights()["重点行业"], "新浪"),
     }
     providers = [
         ("指数", "东方财富", get_index_quotes),
@@ -469,6 +597,7 @@ def build_market_snapshot() -> Dict[str, Any]:
         ("近期", "东方财富", lambda: get_recent_summary("1.000001", days=6)),
         ("汇总", "东方财富", get_market_summary),
         ("重点指数", "东方财富", get_key_index_quotes_with_hang_seng),
+        ("重点方向", "东方财富", get_tech_medicine_focus),
     ]
     snapshot: Dict[str, Any] = {}
     sources: Dict[str, str] = {}
@@ -493,4 +622,5 @@ def build_market_snapshot() -> Dict[str, Any]:
                 snapshot[key] = []
                 sources[key] = "暂缺"
     snapshot["来源"] = sources
+    attach_trends(snapshot)
     return snapshot
