@@ -3,7 +3,8 @@ name: 每日股市与基金简报
 on:
   schedule:
     # 北京时间 14:05 对应 UTC 06:05，但 GitHub 定时任务排队通常延迟约 40 分钟，
-    # 因此提前到 UTC 05:25（北京时间 13:25）触发，期望推送在 14:05 前后送达。
+    # 因此提前到 UTC 05:25（北京时间 13:25）触发；脚本内再锁定两个时刻：
+    # 13:45 后采集行情，14:00 整再推送微信，把送达时间收窄到 14:00-14:05。
     - cron: '25 5 * * 1-5'
   workflow_dispatch:
     inputs:
@@ -56,6 +57,7 @@ jobs:
           AI_ANALYST_MODEL: ${{ secrets.AI_ANALYST_MODEL }}
         run: >-
           python -B stock_daily_report/run_daily.py
+          ${{ github.event_name == 'schedule' && '--collect-after 13:45 --push-after 14:00' || '' }}
           ${{ inputs.offline && '--offline' || '' }}
           ${{ inputs.dry-run && '--dry-run' || '' }}
           ${{ inputs.no-push && '--no-push' || '' }}

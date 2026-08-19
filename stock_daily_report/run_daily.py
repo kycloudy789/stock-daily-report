@@ -23,6 +23,8 @@ def main() -> int:
     parser.add_argument("--no-push", action="store_true", help="发布文档但不推送微信")
     parser.add_argument("--offline", action="store_true", help="使用样例数据离线生成，不访问网络")
     parser.add_argument("--publish", choices=["github", "local", "none"], default=None, help="覆盖配置中的发布方式")
+    parser.add_argument("--collect-after", default=None, help="北京时间 HH:MM，早于该时刻则等待后再采集行情")
+    parser.add_argument("--push-after", default=None, help="北京时间 HH:MM，早于该时刻则等待后再推送微信")
     args = parser.parse_args()
 
     now = datetime.now(ZoneInfo("Asia/Shanghai"))
@@ -38,6 +40,8 @@ def main() -> int:
         dry_run=args.dry_run,
         no_push=args.no_push,
         offline=args.offline,
+        collect_after=args.collect_after,
+        push_after=args.push_after,
     )
 
 
