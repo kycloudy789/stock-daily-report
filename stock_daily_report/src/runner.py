@@ -111,6 +111,7 @@ def run_daily(
 
     summary = build_summary(snapshot, target_date)
     url = None
+    publish_failed = False
     if not dry_run:
         try:
             url = resolve_publish_url(cfg, html_path, WORKSPACE_ROOT, target_date)
@@ -118,13 +119,19 @@ def run_daily(
         except Exception as exc:
             LOGGER.exception("发布失败，请检查 gh 登录、仓库与网络。")
             print(f"发布失败：{exc}")
+            publish_failed = True
 
     if not no_push and not dry_run:
         _sleep_until(push_after, tz, target_date, "推送微信")
         if send_daily_report(cfg, url, summary, target_date, html_content):
             print("微信消息已发送。")
         else:
-            print("微信消息未发送：缺少 PushPlus Token。")
+            print("微信消息推送失败：请检查 PushPlus Token 与网络；本次任务将标记为失败。")
+            if publish_failed:
+                print("本次任务同时存在发布失败，运行结论：发布与推送均异常。")
+            return 2
+    if publish_failed:
+        return 1
 
     print("--- 简报摘要 ---")
     print(summary)

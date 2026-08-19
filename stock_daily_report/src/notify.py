@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import logging
+import time
 from typing import Dict
 
 import requests
@@ -14,6 +15,8 @@ LOGGER = logging.getLogger(__name__)
 MAX_PUSH_CHARS = 19000
 CSS_MARKS = ("<!-- CSS_START -->", "<!-- CSS_END -->")
 BODY_MARKS = ("<!-- BODY_START -->", "<!-- BODY_END -->")
+# 首次失败后等待 5 秒重试，第二次失败后等待 15 秒，最多共尝试 3 次。
+RETRY_DELAYS = (5.0, 15.0)
 
 
 def _slice_marked(source: str, marks) -> str:
@@ -46,24 +49,35 @@ def _push_content(html_content: str, url: str) -> str:
 
 def send_pushplus(token: str, title: str, content: str, topic: str = "") -> bool:
     """调用 PushPlus 接口发送微信消息。"""
-    payload: Dict = {
-        "token": token,
-        "title": title,
-        "content": content,
-        "template": "html",
-    }
-    if topic:
-        payload["topic"] = topic
-    resp = requests.post(
-        "https://www.pushplus.plus/send",
-        json=payload,
-        timeout=20,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("code") != 200:
-        raise RuntimeError(f"PushPlus 返回失败：{data}")
-    return True
+    last_error: Exception | None = None
+    for attempt in range(len(RETRY_DELAYS) + 1):
+        try:
+            payload: Dict = {
+                "token": token,
+                "title": title,
+                "content": content,
+                "template": "html",
+            }
+            if topic:
+                payload["topic"] = topic
+            resp = requests.post(
+                "https://www.pushplus.plus/send",
+                json=payload,
+                timeout=20,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("code") != 200:
+                raise RuntimeError(f"PushPlus 返回失败：{data}")
+            return True
+        except Exception as exc:
+            last_error = exc
+            LOGGER.warning("PushPlus 发送第 %d 次失败：%s", attempt + 1, exc)
+            if attempt < len(RETRY_DELAYS):
+                time.sleep(RETRY_DELAYS[attempt])
+    if last_error is not None:
+        raise last_error
+    return False
 
 
 def send_daily_report(cfg: Dict, url: str, summary: str, target_date, html_content: str = "") -> bool:
@@ -88,5 +102,9 @@ def send_daily_report(cfg: Dict, url: str, summary: str, target_date, html_conte
             "<span style='color:#888;font-size:12px;'>建议仅供参考，不构成投资建议。</span>"
         )
     title = f"{target_date.isoformat()} 股市简报"
-    send_pushplus(token, title, content, topic=str(cfg.get("PushPlus 群组编码") or ""))
-    return True
+    try:
+        send_pushplus(token, title, content, topic=str(cfg.get("PushPlus 群组编码") or ""))
+        return True
+    except Exception as exc:
+        LOGGER.error("微信推送失败：%s", exc)
+        return False

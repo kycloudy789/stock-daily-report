@@ -62,6 +62,28 @@ class RunnerTest(unittest.TestCase):
         result = run_daily(cfg, date(2026, 8, 15), dry_run=True)
         self.assertEqual(result, 0)
 
+    def test_push_failure_returns_nonzero(self):
+        cfg = {
+            "时区": "Asia/Shanghai",
+            "输出目录": "docs",
+            "报告文件名": "index.html",
+            "Markdown文件名": "report.md",
+            "发布方式": "none",
+            "PushPlus Token": "test-token",
+            "PushPlus 群组编码": "",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg["输出目录"] = str(Path(tmp))
+            with patch("src.runner.send_daily_report", return_value=False):
+                result = run_daily(
+                    cfg,
+                    date(2026, 8, 14),
+                    dry_run=False,
+                    no_push=False,
+                    offline=True,
+                )
+        self.assertEqual(result, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
