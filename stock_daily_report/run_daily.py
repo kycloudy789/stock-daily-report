@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import load_config  # noqa: E402
-from src.runner import run_daily  # noqa: E402
+from src.runner import run_daily, run_verify_ai  # noqa: E402
 
 
 def main() -> int:
@@ -25,6 +25,7 @@ def main() -> int:
     parser.add_argument("--publish", choices=["github", "local", "none"], default=None, help="覆盖配置中的发布方式")
     parser.add_argument("--collect-after", default=None, help="北京时间 HH:MM，早于该时刻则等待后再采集行情")
     parser.add_argument("--push-after", default=None, help="北京时间 HH:MM，早于该时刻则等待后再推送微信")
+    parser.add_argument("--verify-ai", action="store_true", help="仅验证 AI 分析师接口（用样例数据，不生成报告不推送）")
     args = parser.parse_args()
 
     now = datetime.now(ZoneInfo("Asia/Shanghai"))
@@ -32,6 +33,9 @@ def main() -> int:
     cfg = load_config()
     if args.publish:
         cfg["发布方式"] = args.publish
+
+    if args.verify_ai:
+        return run_verify_ai(cfg=cfg, target_date=target_date)
 
     return run_daily(
         cfg=cfg,

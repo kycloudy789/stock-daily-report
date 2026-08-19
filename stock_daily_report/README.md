@@ -66,6 +66,7 @@ python -B run_daily.py --offline --dry-run
 - `--publish local`：只发布到本地 `site` 目录。
 - `--collect-after HH:MM`：北京时间，早于该时刻则等待后再采集行情（默认不等待）。
 - `--push-after HH:MM`：北京时间，早于该时刻则等待后再推送微信（默认不等待）。
+- `--verify-ai`：只用样例行情调一次 AI 分析师接口，验证 Key 与输出解析，不生成报告、不推送。
 
 ## 云端自动运行（无需电脑开机）
 
@@ -84,6 +85,8 @@ gh secret set PUSHPLUS_TOKEN --repo kycloudy789/stock-daily-report
 ```
 
 也可以手动到 GitHub 仓库的 Settings -> Secrets and variables -> Actions 添加 `PUSHPLUS_TOKEN`。需要手动测试一次时，在 Actions 页面点击 `每日股市与基金简报` 的 `Run workflow` 即可。
+
+配置 `AI_ANALYST_API_KEY` 后想单独验证 AI 分析师，可在 Actions 页面勾选 `verify-ai` 再点 `Run workflow`，该模式只用样例数据调一次接口，不发布、不推送微信，日志里直接给出解析后的建议文本。
 
 注意：GitHub Actions 的定时任务在仓库超过 60 天没有任何活动时会自动暂停；本项目每天自动提交报告，因此不会被暂停。
 

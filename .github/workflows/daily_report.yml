@@ -23,6 +23,11 @@ on:
         required: false
         default: false
         type: boolean
+      verify-ai:
+        description: 仅验证 AI 分析师接口（样例数据，不生成报告不推送）
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -61,3 +66,4 @@ jobs:
           ${{ inputs.offline && '--offline' || '' }}
           ${{ inputs.dry-run && '--dry-run' || '' }}
           ${{ inputs.no-push && '--no-push' || '' }}
+          ${{ inputs.verify-ai && '--verify-ai' || '' }}

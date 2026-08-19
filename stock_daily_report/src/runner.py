@@ -136,3 +136,35 @@ def run_daily(
     print("--- 简报摘要 ---")
     print(summary)
     return 0
+
+
+def run_verify_ai(cfg: dict, target_date: date) -> int:
+    """只验证 AI 分析师接口：用样例行情调用一次真实接口，不生成报告、不发布、不推送。"""
+    tz = ZoneInfo(str(cfg.get("时区") or "Asia/Shanghai"))
+    source_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M")
+    snapshot: dict = {}
+    _load_sample(snapshot, target_date)
+    result = run_ai_analyst(snapshot, target_date, source_time, cfg)
+
+    print("--- AI 分析师验证 ---")
+    print(f"启用: {result.get('enabled')}")
+    print(f"模型: {result.get('model')}（{result.get('provider')}）")
+    if not result.get("enabled"):
+        print("未配置 API Key，跳过真实调用。按说明配置后再验证。")
+        return 0
+    if result.get("error"):
+        print(f"状态: {result['error']}")
+    print(f"就绪: {result.get('ready')}")
+    for key, title in (
+        ("advice", "投资建议"),
+        ("funds", "基金参考"),
+    ):
+        items = result.get(key) or []
+        print(f"{title}（{len(items)} 条）:")
+        for line in items:
+            print("- " + str(line))
+    if result.get("today_view"):
+        print("今日观点:", result["today_view"])
+    if result.get("risk"):
+        print("风险提示:", result["risk"])
+    return 0 if result.get("ready") else 1

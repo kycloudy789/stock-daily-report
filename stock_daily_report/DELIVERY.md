@@ -29,7 +29,7 @@
 处置：
 - 时间精确化采用“双层时间锁定”：工作流北京时间 13:25 触发（留排队缓冲），脚本等到 13:45 后采集行情，再等到 14:00 整推送微信，送达收窄到 14:00-14:05。相关逻辑见 [src/runner.py](src/runner.py) 与 [.github/workflows/daily_report.yml](../.github/workflows/daily_report.yml)。
 - 废弃版本关闭：已核对 GitHub 工作流列表，仓库仅存 1 个活跃「每日股市与基金简报」工作流；远端 `main` 已最新，旧代码不再触发。
-- 验证：30 项单测通过；最新 `main` 云端冒烟成功；手动触发不会误带时间锁。
+- 验证：33 项单测通过；最新 `main` 云端冒烟成功；手动触发不会误带时间锁。
 
 尚未闭环项：今日 13:25 定时任务为真实运行验证点，14:00-14:05 微信送达需实际观测确认。
 
@@ -48,6 +48,7 @@
 - PushPlus Token 已配置于 GitHub Secrets，未入库；`config.json` 已 gitignore。
 - 可靠性增强：PushPlus 推送失败自动重试（最多 3 次）；最终仍失败或发布失败时任务显式标记失败，Actions 运行状态可见，不再静默。
 - 新增 `--offline/--dry-run/--no-push/--collect-after/--push-after` 测试参数，适配云端与本地调试。
+- 新增 `--verify-ai` 验证入口：配置 AI Key 后可在云端一键端到端验证接口与输出解析，不发布不推送。
 - 补充建议（可选）：接入 AI Key 后月成本约几元；如需进一步精确到秒级可改用 cron-job.org 外部触发，当前双层锁定已满足 14:00-14:05 目标。
 
 ## 三、关键文件
@@ -60,11 +61,11 @@
 | `src/notify.py` | PushPlus 微信推送 |
 | `run_daily.py` | 命令行入口 |
 | `.github/workflows/daily_report.yml` | 云端定时任务 |
-| `tests/` | 30 项单元测试 |
+| `tests/` | 33 项单元测试 |
 
 ## 四、验证证据
 
-- 本地单元测试：`Ran 30 tests ... OK`（含时间锁、AI、降级、日历、推送、报告、失败可见）。
+- 本地单元测试：`Ran 33 tests ... OK`（含时间锁、AI、降级、日历、推送、报告、失败可见、验证入口）。
 - 云端冒烟：`workflow_dispatch` 两次成功（含最新 main），日志确认离线模式、降级与报告生成正常。
 - 云发布：GitHub Pages 部署成功，`docs/index.html` 由定时任务自动更新。
 - 工作流清单：仅 1 个活跃简报工作流，无旧版残留。
