@@ -7,5 +7,8 @@
   "GitHub仓库": "",
   "GitHub页面基础地址": "",
   "PushPlus Token": "",
-  "PushPlus 群组编码": ""
+  "PushPlus 群组编码": "",
+  "AI 分析师 API Key": "",
+  "AI 分析师 API地址": "https://api.deepseek.com",
+  "AI 分析师模型": "deepseek-chat"
 }

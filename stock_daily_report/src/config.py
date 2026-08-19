@@ -28,6 +28,9 @@ def load_config(path: Path | None = None) -> Dict[str, Any]:
         "GitHub页面基础地址": "",
         "PushPlus Token": "",
         "PushPlus 群组编码": "",
+        "AI 分析师 API Key": "",
+        "AI 分析师 API地址": "https://api.deepseek.com",
+        "AI 分析师模型": "deepseek-chat",
     }
     if config_path.exists():
         with config_path.open("r", encoding="utf-8") as f:
@@ -38,6 +41,9 @@ def load_config(path: Path | None = None) -> Dict[str, Any]:
         "PushPlus 群组编码": "PUSHPLUS_TOPIC",
         "GitHub仓库": "GITHUB_REPO",
         "GitHub页面基础地址": "PAGE_BASE_URL",
+        "AI 分析师 API Key": "AI_ANALYST_API_KEY",
+        "AI 分析师 API地址": "AI_ANALYST_BASE_URL",
+        "AI 分析师模型": "AI_ANALYST_MODEL",
     }
     for key, env_name in env_map.items():
         value = _env(env_name)

@@ -200,7 +200,50 @@ def _source_text(snapshot: Dict[str, Any]) -> str:
     return "、".join(ordered + extra)
 
 
+def _analyst(snapshot: Dict[str, Any]) -> Dict[str, Any] | None:
+    """读取本次任务使用的 AI 分析师结果，未启用或失败时返回 None。"""
+    analyst = snapshot.get("分析师")
+    if not isinstance(analyst, dict):
+        return None
+    return analyst if analyst.get("ready") else None
+
+
+def _advice_source_notice(snapshot: Dict[str, Any], label: str = "建议") -> str:
+    """生成建议来源说明：AI 分析师启用时署名，否则标注系统规则备用。"""
+    analyst = _analyst(snapshot)
+    if analyst is not None:
+        model = analyst.get("model") or "未提供"
+        provider = analyst.get("provider") or "未提供"
+        generated_at = analyst.get("generated_at") or ""
+        time_part = f"，数据截至 {generated_at}" if generated_at else ""
+        return (
+            f"{label}由 AI 分析师基于公开行情即时生成（模型：{model}；接口：{provider}）{time_part}；"
+            "仅供研究参考，不构成投资建议。市场有风险，投资需谨慎。"
+        )
+    return (
+        f"{label}由系统规则按公开行情与历史走势生成"
+        "（AI 分析师未启用或当日不可用），仅供研究参考，不构成投资建议。市场有风险，投资需谨慎。"
+    )
+
+
 def build_advice(snapshot: Dict[str, Any]) -> List[str]:
+    """基金操作建议：优先使用 AI 分析师，失败时降级为系统规则。"""
+    analyst = _analyst(snapshot)
+    if analyst is not None:
+        advice = list(analyst.get("advice") or [])
+        if advice:
+            risk = analyst.get("risk")
+            if risk:
+                advice.append(risk)
+            advice.append(
+                "以上建议由 AI 分析师基于公开行情即时生成，仅供研究参考，"
+                "不构成投资建议；投资者应自行判断并承担风险。"
+            )
+            return advice
+    return _build_rule_advice(snapshot)
+
+
+def _build_rule_advice(snapshot: Dict[str, Any]) -> List[str]:
     """根据近几日与当日行情生成基金操作建议。"""
     advice: List[str] = []
     recent = snapshot.get("近期") or {}
@@ -370,6 +413,16 @@ def _direction_leader(rows: Any, keywords: tuple) -> Dict[str, Any] | None:
 
 
 def build_fund_suggestions(snapshot: Dict[str, Any]) -> List[str]:
+    """基金标的参考：优先使用 AI 分析师，失败时降级为系统规则。"""
+    analyst = _analyst(snapshot)
+    if analyst is not None:
+        funds = list(analyst.get("funds") or [])
+        if funds:
+            return funds[:4]
+    return _build_rule_fund_suggestions(snapshot)
+
+
+def _build_rule_fund_suggestions(snapshot: Dict[str, Any]) -> List[str]:
     """结合重点方向与近期走势，给出具体基金标的参考及理由。"""
     suggestions: List[str] = []
     etf_by_name = {
@@ -444,6 +497,14 @@ def build_fund_suggestions(snapshot: Dict[str, Any]) -> List[str]:
 
 
 def build_today_view(snapshot: Dict[str, Any]) -> str:
+    """今日观点：优先使用 AI 分析师，失败时降级为系统规则。"""
+    analyst = _analyst(snapshot)
+    if analyst is not None and analyst.get("today_view"):
+        return analyst["today_view"]
+    return _build_rule_today_view(snapshot)
+
+
+def _build_rule_today_view(snapshot: Dict[str, Any]) -> str:
     """今日观点：结合指数、成交与外围方向生成一段总结。"""
     indexes = snapshot.get("指数") or []
     sh = _find(indexes, "上证指数")
@@ -677,6 +738,16 @@ def _trend_html(snapshot: Dict[str, Any], name: str) -> str:
     rows = _trend_rows(snapshot, name)
     if len(rows) < 2:
         return ""
+    if len(rows) <= 6:
+        label = f"近{len(rows)}日"
+        chart = _trend_chart_svg(rows, label)
+        if not chart:
+            return ""
+        return (
+            f'<details class="trend"><summary>{html.escape(name)}'
+            f'<span class="trend-badge">{label}</span></summary>'
+            f'<div class="trend-grid">{chart}</div></details>'
+        )
     week = _trend_chart_svg(rows[-5:], "近一周")
     month = _trend_chart_svg(rows[-21:], "近一月")
     if not week and not month:
@@ -942,13 +1013,13 @@ def build_html(snapshot: Dict[str, Any], target_date: date, source_time: str) ->
   <section>
     <h2>今日基金标的参考</h2>
     <ul class="advice">{fund_ref_items}</ul>
-    <p class="notice">标的与理由由程序按公开行情与历史走势规则化生成，仅供研究参考，不构成投资建议。</p>
+    <p class="notice">{html.escape(_advice_source_notice(snapshot, "基金标的参考"))}</p>
   </section>
 
   <section>
     <h2>基金操作建议</h2>
     <ol class="advice">{advice_items}</ol>
-    <p class="notice">建议基于公开行情与历史走势的规则化分析生成，不构成投资建议。市场有风险，投资需谨慎。</p>
+    <p class="notice">{html.escape(_advice_source_notice(snapshot, "基金操作建议"))}</p>
   </section>
 
   <section>
@@ -1041,8 +1112,7 @@ def build_markdown(snapshot: Dict[str, Any], target_date: date) -> str:
     lines += ["", "## 基金操作建议", ""]
     lines.extend(f"- {text}" for text in build_advice(snapshot))
     lines += ["", "## 今日观点", "", build_today_view(snapshot)]
-    lines += ["", "> 不构成投资建议，市场有风险，投资需谨慎。"]
-    lines += ["", "> 建议来源：由程序基于东方财富、腾讯、新浪、Naver 公开行情与历史走势规则化生成，非人工投顾判断。"]
+    lines += ["", "> " + _advice_source_notice(snapshot, "基金操作建议与标的参考")]
     return "\n".join(lines)
 
 

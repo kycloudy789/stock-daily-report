@@ -29,8 +29,31 @@ class ReportTest(unittest.TestCase):
         self.assertIn("情绪评价", html)
         self.assertIn("重点科技与医药方向", html)
         self.assertIn("今日基金标的参考", html)
-        self.assertIn("近一周", html)
-        self.assertIn("近一月", html)
+        self.assertIn("近5日", html)
+        self.assertNotIn("近一周/近一月", html)
+
+    def test_trend_html_short_range_single_chart(self):
+        from src.report import _trend_html
+
+        rows5 = [
+            {"日期": f"2026-08-{10 + i:02d}", "收盘价": 3000.0 + i * 10}
+            for i in range(5)
+        ]
+        snapshot = {"走势": {"上证指数": {"明细": rows5}}}
+        html_short = _trend_html(snapshot, "上证指数")
+        self.assertIn("近5日", html_short)
+        self.assertNotIn("近一周", html_short)
+        self.assertEqual(html_short.count("<svg"), 1)
+
+        rows_long = rows5 + [
+            {"日期": f"2026-09-{i + 1:02d}", "收盘价": 3100.0 + i * 5}
+            for i in range(20)
+        ]
+        snapshot_long = {"走势": {"上证指数": {"明细": rows_long}}}
+        html_long = _trend_html(snapshot_long, "上证指数")
+        self.assertIn("近一周", html_long)
+        self.assertIn("近一月", html_long)
+        self.assertEqual(html_long.count("<svg"), 2)
 
     def test_advice_generates_fund_tips(self):
         advice = build_advice(self.snapshot)

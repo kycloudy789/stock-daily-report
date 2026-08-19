@@ -9,6 +9,7 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from .ai_analyst import run_ai_analyst
 from .calendar import is_trading_day, load_holidays
 from .eastmoney import build_market_snapshot
 from .notify import send_daily_report
@@ -49,15 +50,29 @@ def run_daily(
         print(f"{target_date.isoformat()} 不是 A 股交易日，本次任务跳过。")
         return 0
 
+    tz = ZoneInfo(str(cfg.get("时区") or "Asia/Shanghai"))
+    source_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M")
+
     if offline:
         snapshot: dict = {}
         _load_sample(snapshot, target_date)
         print("离线模式：使用样例数据生成简报。")
+        snapshot["分析师"] = {
+            "enabled": False,
+            "ready": False,
+            "model": "",
+            "provider": "",
+            "advice": [],
+            "funds": [],
+            "today_view": "",
+            "risk": "",
+            "error": "离线模式跳过 AI 分析师",
+            "generated_at": source_time,
+        }
     else:
         snapshot = build_market_snapshot()
+        snapshot["分析师"] = run_ai_analyst(snapshot, target_date, source_time, cfg)
 
-    tz = ZoneInfo(str(cfg.get("时区") or "Asia/Shanghai"))
-    source_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M")
     output_value = Path(str(cfg.get("输出目录") or "docs"))
     output_dir = output_value if output_value.is_absolute() else WORKSPACE_ROOT / output_value
     html_path = write_reports(cfg, snapshot, target_date, source_time, output_dir)
