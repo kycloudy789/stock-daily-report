@@ -6,6 +6,22 @@ on:
     # 因此提前到 UTC 05:25（北京时间 13:25）触发，期望推送在 14:05 前后送达。
     - cron: '25 5 * * 1-5'
   workflow_dispatch:
+    inputs:
+      offline:
+        description: 使用样例数据生成（不联网，仅测试）
+        required: false
+        default: false
+        type: boolean
+      dry-run:
+        description: 只生成文档，不发布不推送微信
+        required: false
+        default: false
+        type: boolean
+      no-push:
+        description: 发布文档但不推送微信
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -38,4 +54,8 @@ jobs:
           AI_ANALYST_API_KEY: ${{ secrets.AI_ANALYST_API_KEY }}
           AI_ANALYST_BASE_URL: ${{ secrets.AI_ANALYST_BASE_URL }}
           AI_ANALYST_MODEL: ${{ secrets.AI_ANALYST_MODEL }}
-        run: python -B stock_daily_report/run_daily.py
+        run: >-
+          python -B stock_daily_report/run_daily.py
+          ${{ inputs.offline && '--offline' || '' }}
+          ${{ inputs.dry-run && '--dry-run' || '' }}
+          ${{ inputs.no-push && '--no-push' || '' }}
