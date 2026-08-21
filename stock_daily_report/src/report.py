@@ -90,7 +90,7 @@ def _overview_text(snapshot: Dict[str, Any]) -> List[str]:
 
 
 def _turnover_assessment(summary: Dict[str, Any]) -> str:
-    """用固定阈值对成交额与涨跌家数做规则化客观评价。"""
+    """用固定阈值对成交额与涨跌家数做五档情绪评估（很弱/弱/一般/强/很强）。"""
     amount = summary.get("两市成交额")
     up = summary.get("上涨家数")
     down = summary.get("下跌家数")
@@ -147,6 +147,15 @@ def _turnover_assessment(summary: Dict[str, Any]) -> str:
     if limit_up not in (None, 0) or limit_down not in (None, 0):
         limit_text = f"涨停 {limit_up} 家 / 跌停 {limit_down} 家"
 
+    # 成交额与涨跌家数各占权重，涨停活跃上调、跌停偏多下调，最终映射五档。
+    sentiment_score = round(volume_level * 0.6 + breadth_level * 0.4)
+    if limit_up and limit_up >= 60:
+        sentiment_score += 1
+    if limit_down and limit_down >= 20:
+        sentiment_score -= 1
+    sentiment_score = max(0, min(4, sentiment_score))
+    sentiment_label = ("很弱", "弱", "一般", "强", "很强")[sentiment_score]
+
     if volume_level >= 3 and breadth_level >= 3:
         sentiment = "放量且赚钱效应较好，情绪偏热，短线追高需注意拥挤度"
     elif volume_level >= 3 and breadth_level <= 1:
@@ -167,7 +176,10 @@ def _turnover_assessment(summary: Dict[str, Any]) -> str:
         parts.append(breadth_text)
     if limit_text:
         parts.append(limit_text)
-    return "；".join(parts) + f"。客观评价：{sentiment}。"
+    details = "；".join(parts)
+    if details:
+        return f"{sentiment_label}。{details}。客观说明：{sentiment}。"
+    return f"{sentiment_label}。客观说明：{sentiment}。"
 
 
 def _find(rows: Any, name: str) -> Dict[str, Any] | None:

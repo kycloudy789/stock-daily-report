@@ -67,6 +67,59 @@ class ReportTest(unittest.TestCase):
         self.assertIn("创业板指", summary)
         self.assertIn("主要板块", summary)
         self.assertIn("基金建议", summary)
+        self.assertIn("市场情绪：", summary)
+
+    def test_turnover_assessment_five_levels(self):
+        from src.report import _turnover_assessment
+
+        cases = [
+            (
+                {
+                    "两市成交额": 18000e8,
+                    "上涨家数": 4000,
+                    "下跌家数": 1000,
+                    "涨停家数": 80,
+                    "跌停家数": 5,
+                },
+                "很强",
+            ),
+            (
+                {
+                    "两市成交额": 13000e8,
+                    "上涨家数": 2600,
+                    "下跌家数": 2400,
+                },
+                "强",
+            ),
+            (
+                {
+                    "两市成交额": 11000e8,
+                    "上涨家数": 2500,
+                    "下跌家数": 2500,
+                },
+                "一般",
+            ),
+            (
+                {
+                    "两市成交额": 9000e8,
+                    "上涨家数": 2500,
+                    "下跌家数": 2500,
+                },
+                "弱",
+            ),
+            (
+                {
+                    "两市成交额": 5000e8,
+                    "上涨家数": 1000,
+                    "下跌家数": 4000,
+                    "跌停家数": 40,
+                },
+                "很弱",
+            ),
+        ]
+        for summary, expected in cases:
+            text = _turnover_assessment(summary)
+            self.assertTrue(text.startswith(expected + "。"), text)
 
     def test_html_contains_dynamic_sources(self):
         snapshot = dict(self.snapshot)

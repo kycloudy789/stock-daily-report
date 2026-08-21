@@ -31,6 +31,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: daily-report
@@ -67,3 +69,21 @@ jobs:
           ${{ inputs.dry-run && '--dry-run' || '' }}
           ${{ inputs.no-push && '--no-push' || '' }}
           ${{ inputs.verify-ai && '--verify-ai' || '' }}
+
+      - name: 上传页面产物
+        if: ${{ github.event.inputs.offline != 'true' && github.event.inputs.dry-run != 'true' && github.event.inputs.verify-ai != 'true' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.offline != 'true' && github.event.inputs.dry-run != 'true' && github.event.inputs.verify-ai != 'true' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        name: 部署到 Pages
+        uses: actions/deploy-pages@v4
